@@ -137,6 +137,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FRONTEND_REPO: ${{ vars.FRONTEND_REPO }}
 
+      - name: Set build time
+        id: build_time
+        run: echo "value=$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')" >> "$GITHUB_OUTPUT"
+
       - name: Build
         uses: OpenListTeam/cgo-actions@v1.2.5
         with:
@@ -149,7 +153,7 @@ jobs:
           output: openlist-$target$ext
           musl-base-url: "https://github.com/OpenListTeam/musl-compilers/releases/latest/download/"
           x-flags: |
-            github.com/OpenListTeam/OpenList/v4/internal/conf.BuiltAt=$built_at
+            github.com/OpenListTeam/OpenList/v4/internal/conf.BuiltAt=${{ steps.build_time.outputs.value }}
             github.com/OpenListTeam/OpenList/v4/internal/conf.GitAuthor=The OpenList Projects Contributors <noreply@openlist.team>
             github.com/OpenListTeam/OpenList/v4/internal/conf.GitCommit=$git_commit
             github.com/OpenListTeam/OpenList/v4/internal/conf.Version=$tag

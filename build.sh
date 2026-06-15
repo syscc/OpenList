@@ -1,6 +1,6 @@
 set -e
 appName="openlist"
-builtAt="$(date +'%F %T %z')"
+builtAt="$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')"
 gitAuthor="The OpenList Projects Contributors <noreply@openlist.team>"
 gitCommit=$(git log --pretty=format:"%h" -1)
 
