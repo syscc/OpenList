@@ -19,13 +19,14 @@
 
 ## 分支策略
 
-本仓库的 `main` 分支用于自用 beta 构建：
+本仓库使用两个长期分支：
 
-- 定时同步官方 `OpenListTeam/OpenList:main`
-- 可临时包含本人尚未合并到官方的 PR 或自用改动
-- `main` 更新后自动构建并推送 GHCR beta 镜像
+- `main`：定时同步官方 `OpenListTeam/OpenList:main`，尽量保持接近官方主分支。
+- `beta`：用于自用运行和镜像构建，内容为 `main` 加上本人尚未合并到官方的 PR 或自用改动。
 
-如果需要向官方提交 PR，应从官方 `OpenListTeam/OpenList:main` 创建干净分支，避免把自用构建配置或未合并实验改动带入官方 PR。
+官方 `main` 同步成功后会自动合入 `beta`。如果同步内容涉及 Go、Docker、前端构建产物或其他会影响镜像的文件，`beta` 分支会自动构建并推送 GHCR beta 镜像；仅文档类变化不会触发镜像构建。
+
+如果需要向官方提交 PR，应从官方 `OpenListTeam/OpenList:main` 创建干净功能分支。需要提前自用验证时，再把该功能分支合入 `beta`。
 
 ## Docker 镜像
 

@@ -2,7 +2,21 @@ name: Beta Release builds
 
 on:
   push:
-    branches: ["main"]
+    branches: ["beta"]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile*'
+      - 'entrypoint.sh'
+      - 'build.sh'
+      - 'cmd/**'
+      - 'drivers/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'server/**'
+      - 'public/**'
+      - '.github/workflows/beta_release.yml'
   workflow_dispatch:
 
 concurrency:

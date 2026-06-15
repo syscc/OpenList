@@ -2,15 +2,23 @@ name: Beta Release (Docker)
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types:
-      - beta-docker
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - beta
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile*'
+      - 'entrypoint.sh'
+      - 'build.sh'
+      - 'cmd/**'
+      - 'drivers/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'server/**'
+      - 'public/**'
+      - '.github/workflows/test_docker.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -20,12 +28,11 @@ env:
   REGISTRY: ghcr.io
   ARTIFACT_NAME: 'binaries_docker_release'
   RELEASE_PLATFORMS: 'linux/amd64,linux/arm64'
-  IMAGE_PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
+  IMAGE_PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
   IMAGE_TAGS_BETA: |
-    type=ref,event=pr
-    type=raw,value=beta,enable={{is_default_branch}}
-    type=raw,value=main,enable={{is_default_branch}}
-    type=raw,value=latest,enable={{is_default_branch}}
+    type=raw,value=beta
+    type=raw,value=main
+    type=raw,value=latest
 
 jobs:
   build_binary:

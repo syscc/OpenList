@@ -1,0 +1,44 @@
+name: Sync beta branch
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - sync-beta
+
+concurrency:
+  group: ${{ github.workflow }}-beta
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Merge main into beta
+    runs-on: ubuntu-latest
+    if: github.repository_owner != 'OpenListTeam'
+    steps:
+      - name: Checkout beta
+        uses: actions/checkout@v6
+        with:
+          ref: beta
+          fetch-depth: 0
+
+      - name: Merge main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main beta
+
+          before="$(git rev-parse HEAD)"
+          git merge --no-edit origin/main
+          after="$(git rev-parse HEAD)"
+
+          if [ "$before" = "$after" ]; then
+            echo "Beta is already up to date with main."
+            exit 0
+          fi
+
+          git push origin HEAD:beta
