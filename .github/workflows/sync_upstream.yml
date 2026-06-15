@@ -3,7 +3,7 @@ name: Sync upstream main
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: '17 * * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   sync:
-    name: Merge OpenListTeam main
+    name: Merge latest official beta base
     runs-on: ubuntu-latest
     if: github.repository_owner != 'OpenListTeam'
     steps:
@@ -25,8 +25,10 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Merge upstream main
+      - name: Merge latest official beta base
         id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -34,15 +36,38 @@ jobs:
           git remote add upstream https://github.com/OpenListTeam/OpenList.git
           git fetch upstream main
 
+          official_run="$(gh run list \
+            --repo OpenListTeam/OpenList \
+            --workflow test_docker.yml \
+            --branch main \
+            --event push \
+            --status success \
+            --limit 1 \
+            --json databaseId,headSha,url \
+            --jq '.[0]')"
+
+          if [ -z "$official_run" ] || [ "$official_run" = "null" ]; then
+            echo "No successful official beta Docker run found."
+            exit 1
+          fi
+
+          official_sha="$(echo "$official_run" | jq -r '.headSha')"
+          official_run_id="$(echo "$official_run" | jq -r '.databaseId')"
+          official_run_url="$(echo "$official_run" | jq -r '.url')"
+
+          git cat-file -e "${official_sha}^{commit}"
+          echo "Latest official beta Docker run: $official_run_id"
+          echo "Official beta base SHA: $official_sha"
+          echo "Official run URL: $official_run_url"
+
           before="$(git rev-parse HEAD)"
-          upstream="$(git rev-parse upstream/main)"
-          if [ "$before" = "$upstream" ]; then
+          if git merge-base --is-ancestor "$official_sha" HEAD; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Already up to date with upstream/main."
+            echo "Already contains latest official beta base."
             exit 0
           fi
 
-          git merge --no-edit upstream/main
+          git merge --no-edit "$official_sha"
           after="$(git rev-parse HEAD)"
           if [ "$before" = "$after" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"

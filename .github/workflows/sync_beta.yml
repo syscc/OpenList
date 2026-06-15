@@ -5,6 +5,8 @@ on:
   repository_dispatch:
     types:
       - sync-beta
+  schedule:
+    - cron: '37,52 * * * *'
 
 concurrency:
   group: ${{ github.workflow }}-beta
@@ -12,33 +14,94 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   sync:
-    name: Merge main into beta
+    name: Regenerate beta branch
     runs-on: ubuntu-latest
     if: github.repository_owner != 'OpenListTeam'
     steps:
-      - name: Checkout beta
+      - name: Checkout main
         uses: actions/checkout@v6
         with:
-          ref: beta
+          ref: main
           fetch-depth: 0
 
-      - name: Merge main
+      - name: Regenerate beta
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main beta
+          git fetch origin main
+          git fetch origin beta || true
 
-          before="$(git rev-parse HEAD)"
-          git merge --no-edit origin/main
-          after="$(git rev-parse HEAD)"
+          git checkout -B beta origin/main
 
-          if [ "$before" = "$after" ]; then
-            echo "Beta is already up to date with main."
+          state_file=".github/beta-state.txt"
+          mkdir -p .github
+          {
+            echo "base=$(git rev-parse origin/main)"
+            echo "prs:"
+          } > "$state_file"
+
+          if [ -s .github/beta-prs.txt ]; then
+            pr_numbers="$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' .github/beta-prs.txt | awk 'NF')"
+          else
+            pr_numbers=""
+          fi
+
+          for pr in $pr_numbers; do
+            pr_json="$(gh pr view "$pr" \
+              --repo OpenListTeam/OpenList \
+              --json state,isDraft,headRepositoryOwner,headRepository,headRefName,headRefOid,url \
+              --jq '.')"
+
+            state="$(echo "$pr_json" | jq -r '.state')"
+            draft="$(echo "$pr_json" | jq -r '.isDraft')"
+            owner="$(echo "$pr_json" | jq -r '.headRepositoryOwner.login')"
+            repo="$(echo "$pr_json" | jq -r '.headRepository.name')"
+            ref="$(echo "$pr_json" | jq -r '.headRefName')"
+            oid="$(echo "$pr_json" | jq -r '.headRefOid')"
+            url="$(echo "$pr_json" | jq -r '.url')"
+
+            if [ "$state" != "OPEN" ] || [ "$draft" = "true" ]; then
+              echo "skip PR #$pr: state=$state draft=$draft"
+              echo "- $pr skipped state=$state draft=$draft" >> "$state_file"
+              continue
+            fi
+
+            if [ "$owner" != "${{ github.repository_owner }}" ]; then
+              echo "skip PR #$pr: owner=$owner"
+              echo "- $pr skipped owner=$owner" >> "$state_file"
+              continue
+            fi
+
+            remote="pr-$pr"
+            git remote add "$remote" "https://github.com/$owner/$repo.git"
+            git fetch "$remote" "$ref"
+
+            echo "merge PR #$pr: $url"
+            git merge --no-edit --no-ff FETCH_HEAD
+            echo "- $pr $oid $url" >> "$state_file"
+          done
+
+          git add "$state_file"
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update beta state"
+          fi
+
+          new_tree="$(git rev-parse HEAD^{tree})"
+          old_tree=""
+          if git rev-parse --verify origin/beta >/dev/null 2>&1; then
+            old_tree="$(git rev-parse origin/beta^{tree})"
+          fi
+
+          if [ "$new_tree" = "$old_tree" ]; then
+            echo "Beta tree is already up to date."
             exit 0
           fi
 
-          git push origin HEAD:beta
+          git push --force-with-lease origin HEAD:beta
