@@ -47,10 +47,20 @@ jobs:
             echo "prs:"
           } > "$state_file"
 
-          if [ -s .github/beta-prs.txt ]; then
-            pr_numbers="$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' .github/beta-prs.txt | awk 'NF')"
+          configured_prs=""
+          if [ -f .github/beta-prs.txt ]; then
+            configured_prs="$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' .github/beta-prs.txt | awk 'NF')"
+          fi
+
+          if [ -n "$configured_prs" ]; then
+            pr_numbers="$configured_prs"
           else
-            pr_numbers=""
+            pr_numbers="$(gh pr list \
+              --repo OpenListTeam/OpenList \
+              --author "${{ github.repository_owner }}" \
+              --state open \
+              --json number,isDraft,headRepositoryOwner \
+              --jq '.[] | select(.isDraft == false) | select(.headRepositoryOwner.login == "${{ github.repository_owner }}") | .number')"
           fi
 
           for pr in $pr_numbers; do
