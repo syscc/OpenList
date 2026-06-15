@@ -1,0 +1,63 @@
+name: Sync upstream main
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    name: Merge OpenListTeam main
+    runs-on: ubuntu-latest
+    if: github.repository_owner != 'OpenListTeam'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream main
+        id: merge
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/OpenListTeam/OpenList.git
+          git fetch upstream main
+
+          before="$(git rev-parse HEAD)"
+          upstream="$(git rev-parse upstream/main)"
+          if [ "$before" = "$upstream" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Already up to date with upstream/main."
+            exit 0
+          fi
+
+          git merge --no-edit upstream/main
+          after="$(git rev-parse HEAD)"
+          if [ "$before" = "$after" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes after merge."
+            exit 0
+          fi
+
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger beta Docker build
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/dispatches \
+            --method POST \
+            -f event_type=beta-docker
