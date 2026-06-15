@@ -1,174 +1,101 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/OpenListTeam/Logo/main/logo.svg" width="128" height="128" alt="logo" />
+# OpenList Personal Beta
 
-  <p><em>OpenList is a resilient, long-term governance, community-driven fork of AList — built to defend open source against trust-based attacks.</em></p>
+一个基于 [OpenListTeam/OpenList](https://github.com/OpenListTeam/OpenList) 的个人实验性 Fork，用于跟进官方主分支、验证自用改动，并自动构建 beta Docker 镜像。
 
-  <img src="https://goreportcard.com/badge/github.com/OpenListTeam/OpenList/v3" alt="latest version" />
-  <a href="https://github.com/OpenListTeam/OpenList/blob/main/LICENSE"><img src="https://img.shields.io/github/license/OpenListTeam/OpenList" alt="License" /></a>
-  <a href="https://github.com/OpenListTeam/OpenList/actions?query=workflow%3ABuild"><img src="https://img.shields.io/github/actions/workflow/status/OpenListTeam/OpenList/build.yml?branch=main" alt="Build status" /></a>
-  <a href="https://github.com/OpenListTeam/OpenList/releases"><img src="https://img.shields.io/github/release/OpenListTeam/OpenList" alt="latest version" /></a>
+> [!WARNING]
+>
+> **高风险实验性分支 - 不建议生产使用**
+>
+> 此仓库是 OpenList 的非官方个人 Fork，可能包含尚未合并到官方仓库的实验代码：
+>
+> - 可能存在未充分验证的功能实现
+> - 可能包含不稳定的实验代码
+> - 可能存在 BUG、安全风险或兼容性问题
+> - 使用第三方网盘或服务时，可能带来账号限制、封禁、数据丢失等风险
+>
+> **建议：** 生产环境优先使用 [官方 OpenList 稳定版本](https://github.com/OpenListTeam/OpenList)。
+>
+> **特别声明：** 此分支的所有代码、构建产物及产生的任何后果与 OpenListTeam 无关。合适的改动会通过 PR 提交到官方仓库，尽量减少与官方主分支的差异。
 
-  <a href="https://github.com/OpenListTeam/OpenList/discussions"><img src="https://img.shields.io/github/discussions/OpenListTeam/OpenList?color=%23ED8936" alt="discussions" /></a>
-  <a href="https://github.com/OpenListTeam/OpenList/releases"><img src="https://img.shields.io/github/downloads/OpenListTeam/OpenList/total?color=%239F7AEA&logo=github" alt="Downloads" /></a>
-</div>
+## 分支策略
 
----
+本仓库的 `main` 分支用于自用 beta 构建：
 
-- English | [中文](./README_cn.md) | [日本語](./README_ja.md) | [Dutch](./README_nl.md)
+- 定时同步官方 `OpenListTeam/OpenList:main`
+- 可临时包含本人尚未合并到官方的 PR 或自用改动
+- `main` 更新后自动构建并推送 GHCR beta 镜像
 
-- [Contributing](./CONTRIBUTING.md)
-- [CODE OF CONDUCT](./CODE_OF_CONDUCT.md)
-- [LICENSE](./LICENSE)
+如果需要向官方提交 PR，应从官方 `OpenListTeam/OpenList:main` 创建干净分支，避免把自用构建配置或未合并实验改动带入官方 PR。
 
-## Disclaimer
+## Docker 镜像
 
-OpenList is an open-source project independently maintained by the OpenList Team, following the AGPL-3.0 license and committed to maintaining complete code openness and modification transparency.
+此仓库仅提供 GHCR 上的 CI beta 镜像，不提供 Docker Hub 镜像。
 
-We have noticed the emergence of some third-party projects in the community with names similar to this project, such as OpenListApp/OpenListApp, as well as some paid proprietary software using the same or similar naming. To avoid user confusion, we hereby declare:
+用于兼容替换原版 AList 的镜像，路径仍使用 `/opt/alist`：
 
-- OpenList has no official association with any third-party derivative projects.
+```bash
+docker pull ghcr.io/syscc/alist:main
+```
 
-- All software, code, and services of this project are maintained by the OpenList Team and are freely available on GitHub.
+OpenList 镜像，路径使用 `/opt/openlist`：
 
-- Project documentation and API services primarily rely on charitable resources provided by Cloudflare. There are currently no paid plans or commercial deployments, and the use of existing features does not involve any costs.
+```bash
+docker pull ghcr.io/syscc/openlist:beta
+```
 
-We respect the community's rights to free use and derivative development, but we also strongly urge downstream projects:
+常用标签：
 
-- Should not use the "OpenList" name for impersonation promotion or commercial gain;
+```text
+ghcr.io/syscc/openlist:beta
+ghcr.io/syscc/openlist:main
+ghcr.io/syscc/openlist:latest
+ghcr.io/syscc/openlist:beta-ffmpeg
+ghcr.io/syscc/openlist:beta-aria2
+ghcr.io/syscc/openlist:beta-aio
 
-- Must not distribute OpenList-based code in a closed-source manner or violate AGPL license terms.
+ghcr.io/syscc/alist:beta
+ghcr.io/syscc/alist:main
+ghcr.io/syscc/alist:latest
+ghcr.io/syscc/alist:beta-ffmpeg
+ghcr.io/syscc/alist:beta-aria2
+ghcr.io/syscc/alist:beta-aio
+```
 
-To better maintain healthy ecosystem development, we recommend:
+为了加快构建速度，Docker beta 镜像仅构建以下平台：
 
-- Clearly indicate the project source and choose appropriate open-source licenses in accordance with the open-source spirit;
+- `linux/amd64`
+- `linux/arm64`
 
-- If involving commercial use, please avoid using "OpenList" or any confusing naming as the project name;
+如需其他平台，请自行基于源码构建。
 
-- If you need to use materials located under OpenListTeam/Logo, you may modify and use them under compliance with the agreement.
+## Release
 
-Thank you for your support and understanding of the OpenList project.
+本仓库保留 beta release 构建流程，可生成常见系统架构的二进制压缩包。
 
-## Features
+注意：本仓库的 beta release 和 Docker 镜像均为实验构建，不代表官方发布版本。
 
-- [x] Multiple storages
-  - [x] Local storage
-  - [x] [Aliyundrive](https://www.alipan.com)
-  - [x] OneDrive / Sharepoint ([Global](https://www.microsoft.com/en-us/microsoft-365/onedrive/online-cloud-storage), [CN](https://portal.partner.microsoftonline.cn), DE, US)
-  - [x] [189cloud](https://cloud.189.cn) (Personal, Family)
-  - [x] [GoogleDrive](https://drive.google.com)
-  - [x] [123pan](https://www.123pan.com)
-  - [x] [FTP / SFTP](https://en.wikipedia.org/wiki/File_Transfer_Protocol)
-  - [x] [PikPak](https://www.mypikpak.com)
-  - [x] [S3](https://aws.amazon.com/s3)
-  - [x] [Seafile](https://seafile.com)
-  - [x] [UPYUN Storage Service](https://www.upyun.com/products/file-storage)
-  - [x] [WebDAV](https://en.wikipedia.org/wiki/WebDAV)
-  - [x] Teambition([China](https://www.teambition.com), [International](https://us.teambition.com))
-  - [x] [MediaFire](https://www.mediafire.com)
-  - [x] [Mediatrack](https://www.mediatrack.cn)
-  - [x] [ProtonDrive](https://proton.me/drive)
-  - [x] [139yun](https://yun.139.com) (Personal, Family, Group)
-  - [x] [YandexDisk](https://disk.yandex.com)
-  - [x] [BaiduNetdisk](http://pan.baidu.com)
-  - [x] [Terabox](https://www.terabox.com/main)
-  - [x] [UC](https://drive.uc.cn)
-  - [x] [Quark](https://pan.quark.cn)
-  - [x] [Thunder](https://pan.xunlei.com)
-  - [x] [Lanzou](https://www.lanzou.com)
-  - [x] [ILanzou](https://www.ilanzou.com)
-  - [x] [Google photo](https://photos.google.com)
-  - [x] [Mega.nz](https://mega.nz)
-  - [x] [Baidu photo](https://photo.baidu.com)
-  - [x] [SMB](https://en.wikipedia.org/wiki/Server_Message_Block)
-  - [x] [115](https://115.com)
-  - [X] [Cloudreve](https://cloudreve.org)
-  - [x] [Dropbox](https://www.dropbox.com)
-  - [x] [FeijiPan](https://www.feijipan.com)
-  - [x] [dogecloud](https://www.dogecloud.com/product/oss)
-  - [x] [Azure Blob Storage](https://azure.microsoft.com/products/storage/blobs)
-  - [x] [Chaoxing](https://www.chaoxing.com)
-  - [x] [CNB](https://cnb.cool/)
-  - [x] [Degoo](https://degoo.com)
-  - [x] [Doubao](https://www.doubao.com)
-  - [x] [Febbox](https://www.febbox.com)
-  - [x] [GitHub](https://github.com)
-  - [x] [OpenList](https://github.com/OpenListTeam/OpenList)
-  - [x] [Teldrive](https://github.com/tgdrive/teldrive)
-  - [x] [Weiyun](https://www.weiyun.com)
-- [x] Easy to deploy and out-of-the-box
-- [x] File preview (PDF, markdown, code, plain text, ...)
-- [x] Image preview in gallery mode
-- [x] Video and audio preview, support lyrics and subtitles
-- [x] Office documents preview (docx, pptx, xlsx, ...)
-- [x] `README.md` preview rendering
-- [x] File permalink copy and direct file download
-- [x] Dark mode
-- [x] I18n
-- [x] Protected routes (password protection and authentication)
-- [x] WebDAV
-- [x] Docker Deploy
-- [x] Cloudflare Workers proxy
-- [x] File/Folder package download
-- [x] Web upload(Can allow visitors to upload), delete, mkdir, rename, move and copy
-- [x] Offline download
-- [x] Copy files between two storage
-- [x] Multi-thread downloading acceleration for single-thread download/stream
+## 反馈
 
-## Document
+如果问题只出现在本分支的实验功能中，请优先在本仓库内讨论。
 
-- 📘 [Docs](https://doc.oplist.org)
-- 🌏 [CN Mirror](https://doc.oplist.org.cn)
-- ⚖️ [Terms of Use](https://doc.oplist.org/terms)
-- 🔒 [Privacy Policy](https://doc.oplist.org/privacy)
+如果问题在官方版本中也能复现，请使用官方版本复测后反馈至上游：
 
-## Demo
+- [OpenListTeam/OpenList Issues](https://github.com/OpenListTeam/OpenList/issues)
+- [OpenListTeam/OpenList Discussions](https://github.com/OpenListTeam/OpenList/discussions)
 
-- 🌎 [Global Demo](https://demo.oplist.org)
-- 🇨🇳 [CN Demo](https://demo.oplist.org.cn)
+## AGPL 授权声明
 
-## Discussion
+本软件受 [GNU Affero General Public License v3.0 (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.html) 许可协议保护。您可以自由使用、修改和分发本软件，但必须遵守 AGPL-3.0 的相关条款，包括在分发和提供网络服务时公开源代码。
 
-Please refer to [*Discussions*](https://github.com/OpenListTeam/OpenList/discussions) for raising general questions, ***Issues* is for bug reports and feature requests only.**
+## 使用条款
 
-## Sponsor
+- 本项目仅供合法用途，用户不得利用本项目从事任何违法活动。
+- 用户应自行承担因使用本项目而产生的所有风险和责任。
+- 本项目按“现状”提供，不对其可用性、准确性、兼容性或适用性作任何明示或暗示的保证。
+- 所有基于 OpenList 的下游项目必须遵守 AGPL-3.0 协议，包括明确标注来源、保持开源属性并采用兼容的许可方式。
 
-[![VPS.Town](https://vps.town/static/images/sponsor.png)](https://vps.town "VPS.Town - Trust, Effortlessly. Your Cloud, Reimagined.")
+## 免责声明
 
-## Donors
-
-Thanks to the following donors for their generous support:
-
-- [HisAtri](https://github.com/HisAtri)
-- 爱发电用户_7jTh
-- suka
-
-## License
-
-The `OpenList` is open-source software licensed under the [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.txt) license.
-
-## Disclaimer
-
-- This project is a free and open-source software designed to facilitate file sharing via net disks, primarily intended to support the downloading and learning of the Go programming language.
-- Please comply with all applicable laws and regulations when using this software. Any form of misuse is strictly prohibited.
-- The software is based on official SDKs or APIs without any modification, disruption, or interference with their behavior.
-- It only performs HTTP 302 redirects or traffic forwarding, and does not intercept, store, or tamper with any user data.
-- This project is not affiliated with any official platform or service provider.
-- The software is provided "as is", without any warranties of any kind, either express or implied, including but not limited to warranties of merchantability or fitness for a particular purpose.
-- The maintainers are not liable for any direct or indirect damages arising from the use of, or inability to use, this software.
-- You are solely responsible for any risks associated with using this software, including but not limited to account bans or download speed limitations.
-- This project is licensed under the [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.txt) License. Please see the [LICENSE](./LICENSE) file for details.
-
-## Contact Us
-
-- [@GitHub](https://github.com/OpenListTeam)
-- [Telegram Group](https://t.me/OpenListTeam)
-- [Telegram Channel](https://t.me/OpenListOfficial)
-
-## Contributors
-
-We sincerely thank the author [Xhofe](https://github.com/Xhofe) of the original project [AlistGo/alist](https://github.com/AlistGo/alist) and all other contributors.
-
-Thanks goes to these wonderful people:
-
-[![Contributors](https://contrib.rocks/image?repo=OpenListTeam/OpenList)](https://github.com/OpenListTeam/OpenList/graphs/contributors)
-
+1. 本项目为个人实验性分支，未经充分测试，可能存在安全漏洞、兼容性问题或数据丢失风险。
+2. 本项目的所有代码、构建产物及产生的任何后果与 OpenListTeam 无关。
+3. 对于因使用本项目而产生的任何损失或后果，维护者不承担责任。
