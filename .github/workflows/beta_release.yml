@@ -43,15 +43,19 @@ jobs:
           ref: tags/beta
           sha: ${{ github.sha }}
 
-      - name: Delete beta tag
-        run: git tag -d beta
-        continue-on-error: true
-
-      - name: changelog # or changelogithub@0.12 if ensure the stable result
-        id: changelog
+      - name: Generate beta changelog
         run: |
-          git tag -l
-          npx changelogithub --output CHANGELOG.md
+          set -euo pipefail
+          {
+            echo "# Beta Changelog"
+            echo
+            echo "- Branch: \`${GITHUB_REF_NAME}\`"
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+            echo "- Built at: $(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')"
+            echo
+            echo "## Recent commits"
+            git log --no-merges -n 30 --pretty='- %s (%h)'
+          } > CHANGELOG.md
 
       - name: Upload assets to beta release
         env:
