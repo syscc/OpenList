@@ -1,90 +1,97 @@
 # AGENTS.md
 
-本仓库是 `syscc/OpenList` 个人 fork，目标是跟随官方 OpenList，同时维护自用 beta 镜像。后续代理处理本仓库时请遵守以下规则。
+This repository is `syscc/OpenList`, a personal fork of `OpenListTeam/OpenList`.
+It follows upstream OpenList while maintaining a personal beta image workflow.
 
-## 本地构建限制
+## Local Work Limits
 
-- 测试和排查阶段禁止在本地将源码编译为二进制程序。
-- 不要在本地运行 `go build`、`bash build.sh`、`docker build`、发布打包、镜像构建等会生成编译产物的命令。
-- 本地只做源码检查、YAML/文本校验、Git/GitHub 状态检查。
-- 构建验证以 GitHub Actions 为准。
+- During testing and troubleshooting, do not compile the source into local binaries.
+- Do not run `go build`, `bash build.sh`, `docker build`, release packaging, or image builds locally.
+- Local work should be limited to source inspection, YAML/text validation, Git/GitHub status checks, and source-mode runtime debugging when needed.
+- Build validation is expected to happen in GitHub Actions.
 
-## Remote 用法
+## Remotes
 
-- `origin` 指向官方 `OpenListTeam/OpenList`，用于读取官方状态，不要向它 push。
-- `fork` 指向 `syscc/OpenList`，需要推送时只推这里。
-- `xrgzs` 只作为参考 remote，不要向 `xrgzs/OpenList` 创建 PR 或推送。
+- `origin` points to upstream `OpenListTeam/OpenList`; use it for reading upstream state only, do not push to it.
+- `fork` points to `syscc/OpenList`; push only to this remote when updating this fork.
+- `xrgzs` is reference-only; do not push to `xrgzs/OpenList` or create PRs there.
 
-## 分支策略
+## Branch Model
 
-- `main`：跟随官方主线，但保留本 fork 必需的管理文件和 workflow。不要把未合并 PR 的功能代码长期放在 `main`。
-- `beta`：自动生成的自用运行分支，内容为 `main` 加上当前仍未合并的自用 PR。
-- `feat/*`、`fix/*`：给官方提交 PR 的功能分支，应基于官方 `OpenListTeam/OpenList:main` 创建，避免带入本 fork 的 README/workflow/管理提交。
+- `main`: follows upstream, while keeping fork management files and workflows.
+- `beta`: generated runtime branch, built from `main` plus open personal PRs that have not been merged upstream.
+- `feat/*` and `fix/*`: PR branches for upstream OpenList. Base them on upstream `OpenListTeam/OpenList:main` and avoid fork-only README/workflow/management commits.
 
-当前期望状态：
+Expected state:
 
 ```text
-main = 官方 beta 成功构建过的基线 + fork 管理文件
-beta = main + syscc 在官方仓库中 open、非 draft、head 来自 syscc/OpenList 的 PR
+main = upstream beta-validated base + fork management files
+beta = main + open, non-draft upstream PRs whose head repo is syscc/OpenList
 ```
 
-## Beta PR 规则
+Do not keep unmerged feature code directly on `main`; keep it in PR branches and let `beta` aggregate it.
 
-- 默认情况下，`Sync beta branch` 会自动收集 `OpenListTeam/OpenList` 中 author 为 `syscc`、状态为 open、非 draft、head repo 为 `syscc/OpenList` 的 PR，并叠加到 `beta`。
-- `.github/beta-prs.txt` 是可选限制列表：
-  - 文件里没有 PR 号时，自动使用所有符合条件的 open PR。
-  - 文件里写了 PR 号时，只叠加这些 PR。
-- 官方合并某个 PR 后，该 PR 不再是 open，下一次生成 `beta` 时会自动不再叠加。
+## Beta PR Rules
 
-## Workflow 说明
+- `Sync beta branch` normally discovers PRs in `OpenListTeam/OpenList` where:
+  - author is `syscc`
+  - state is open
+  - draft is false
+  - head repository is `syscc/OpenList`
+- `.github/beta-prs.txt` is an optional allow-list:
+  - empty or absent: include every matching open PR
+  - contains PR numbers: include only those PRs
+- After upstream merges a PR, it is no longer open and will be dropped from the next generated `beta`.
+
+## Workflows
 
 - `Sync upstream main`
-  - 每小时检查官方 `OpenListTeam/OpenList` 最新成功的 `Beta Release (Docker)` push run。
-  - 只把 `main` 同步到官方已经成功构建 beta Docker 的 SHA。
-  - 同步成功后触发 `Sync beta branch`。
+  - Checks the latest successful upstream beta Docker push run.
+  - Moves `main` forward only to an upstream SHA that has successfully built beta Docker.
+  - Triggers `Sync beta branch` after a successful update.
 
 - `Sync beta branch`
-  - 从 `main` 重新生成 `beta`。
-  - 自动叠加符合规则的未合并 PR。
-  - 写入 `.github/beta-state.txt` 记录 base 和 PR 状态。
-  - 只有生成后的 `beta` tree 有变化才 push。
+  - Regenerates `beta` from `main`.
+  - Merges matching unmerged PRs.
+  - Writes `.github/beta-state.txt` with the selected base and PR state.
+  - Pushes only when the generated `beta` tree changes.
 
 - `Beta Release (Docker)`
-  - 只从 `beta` 分支构建 GHCR 镜像。
-  - 只在 Go、Docker、build、public 等影响镜像内容的路径变化时触发。
-  - 目标镜像为 `ghcr.io/syscc/openlist` 和 `ghcr.io/syscc/alist`。
+  - Builds GHCR images only from `beta`.
+  - Uses path filters so unrelated changes do not trigger image builds.
+  - Publishes `ghcr.io/syscc/openlist` and `ghcr.io/syscc/alist`.
 
 - `Beta Release builds`
-  - 只从 `beta` 分支构建 beta release 二进制包。
-  - 同样带 paths 过滤。
+  - Builds beta release binaries only from `beta`.
+  - Also uses path filters.
 
 - `Test Build`
-  - 用于 PR 构建检查。
+  - Runs upstream PR build checks.
 
-## 官方协作规则
+## Upstream Collaboration
 
 ### Issues
 
-Before creating an issue, review the available issue templates in the `.github` directory.
+Before creating an issue, review the available issue templates in `.github`.
 
-When drafting the issue:
+When drafting an issue:
 
 - Use the most appropriate template.
 - Follow the template structure.
 - Fill in all required sections.
-- Remove sections that the template explicitly marks as optional or not applicable.
+- Remove optional or not-applicable sections when the template says to.
 - Do not invent reproduction steps, logs, screenshots, or expected behavior.
 
 ### Pull Requests
 
 Before creating a pull request, read `.github/PULL_REQUEST_TEMPLATE.md`.
 
-When drafting the pull request:
+When drafting a pull request:
 
 - Follow the template structure.
 - Use the title format required by the template.
 - Fill in or remove each section according to the template guidance.
-- Include testing details, or explain why testing was not run.
+- Include testing details, or explicitly explain why testing was not run.
 - Do not invent testing results.
 - Do not claim validation, verification, or review steps that were not actually performed.
 
@@ -96,7 +103,7 @@ When creating commits, follow the repository `git-commit` skill rules:
 - Allowed types: `feat`, `fix`, `refactor`, `perf`, `docs`, `style`, `test`, `build`, `ci`, `chore`, `revert`.
 - Use a meaningful scope based on the main module, package, or feature.
 - Write the subject in imperative mood and describe the actual change.
-- Use a concise Markdown list in the commit body, with each item describing one key change.
+- Use a concise Markdown list in the commit body when a body is useful, with each item describing one key change.
 - Do not invent changes that are not present in the diff.
 - Do not describe behavior, refactors, fixes, or tests that are not reflected in the commit.
 
@@ -108,13 +115,11 @@ Examples:
 - `Co-authored-by: GitHub Copilot <copilot@github.com>`
 - `Co-authored-by: Claude <81847+claude@users.noreply.github.com>`
 
-If you are not one of the listed assistants, do not add a `Co-authored-by` trailer.
+If you are not one of the listed assistants, do not add a `Co-authored-by` trailer. Ask the human collaborator for the exact trailer instead.
 
-Instead, ask the human collaborator to provide the exact `Co-authored-by` trailer to use. Do not invent, infer, or generate one yourself.
+## Checks
 
-## 常用检查
-
-完整检查时优先执行：
+Run these first when doing a full repository check:
 
 ```bash
 git status --short
@@ -126,18 +131,18 @@ gh run list --repo syscc/OpenList --limit 12
 gh pr list --repo OpenListTeam/OpenList --author syscc --state open
 ```
 
-必要时检查：
+Use these when inspecting beta generation:
 
 ```bash
 git diff --stat refs/heads/main..refs/heads/beta
 cat .github/beta-state.txt
 ```
 
-## 操作注意
+## Operational Notes
 
-- 不要把 `beta` 分支直接拿去给官方开 PR。
-- 不要从 `beta` 开官方 PR。
-- 不要因为 GitHub compare 页面出现 `xrgzs/OpenList/compare/main...syscc:beta` 就创建 PR；那只是比较页。
-- `main` 的 force push 只在明确需要重写 fork 管理历史时执行，并且必须确认不会覆盖用户未保存工作。
-- `beta` 是生成分支，可以由 workflow 或维护操作 force push。
-- 本地未跟踪的 `.spec-workflow/` 不要提交，除非用户明确要求。
+- Do not open upstream PRs from `beta`.
+- Do not base upstream PRs on `beta`.
+- Do not create PRs from GitHub compare pages like `xrgzs/OpenList/compare/main...syscc:beta`; those are only compare views.
+- Force-push `main` only when explicitly needed to rewrite fork management history, and only after confirming it will not overwrite user work.
+- `beta` is generated and may be force-pushed by workflows or maintenance operations.
+- Do not commit the local untracked `.spec-workflow/` directory unless explicitly requested.
