@@ -1,0 +1,13 @@
+# Paths in this fork that must always keep the syscc/OpenList version when
+# syncing from OpenListTeam/OpenList.
+#
+# One path per line. Directories are restored recursively. Paths that do not
+# exist in this fork are removed again after an upstream merge.
+AGENTS.md
+README.md
+README_cn.md
+README_ja.md
+README_nl.md
+.github/beta-prs.txt
+.github/fork-owned-paths.txt
+.github/workflows

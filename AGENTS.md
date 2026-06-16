@@ -21,6 +21,13 @@
 - `beta`：自动生成的自用运行分支，内容为 `main` 加上当前仍未合并的自用 PR。
 - `feat/*`、`fix/*`：给官方提交 PR 的功能分支，应基于官方 `OpenListTeam/OpenList:main` 创建，避免带入本 fork 的 README/workflow/管理提交。
 
+## Fork 固定文件
+
+- `.github/fork-owned-paths.txt` 记录“永远以本 fork 为准”的路径。
+- `Sync upstream main` 合并官方更新后，会按该清单把这些路径恢复成合并前 `syscc/OpenList:main` 的版本。
+- 如果官方新增同名 README、workflow 或其它清单内路径，而本 fork 没有该文件，同步后也会删除，避免官方内容重新混入本 fork。
+- 需要新增或移除固定文件时，只改 `.github/fork-owned-paths.txt`，不要在 workflow 里写死路径。
+
 当前期望状态：
 
 ```text

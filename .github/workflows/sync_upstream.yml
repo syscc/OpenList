@@ -67,7 +67,42 @@ jobs:
             exit 0
           fi
 
-          git merge --no-edit "$official_sha"
+          fork_base="$before"
+          owned_paths_file=".github/fork-owned-paths.txt"
+          mapfile -t fork_owned_paths < <(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$owned_paths_file" | awk 'NF')
+
+          merge_failed=0
+          git merge --no-edit --no-ff --no-commit "$official_sha" || merge_failed=1
+
+          for path in "${fork_owned_paths[@]}"; do
+            echo "Restore fork-owned path: $path"
+            git rm -r -f --ignore-unmatch "$path"
+            rm -rf "$path"
+            if git cat-file -e "$fork_base:$path" 2>/dev/null; then
+              git checkout "$fork_base" -- "$path"
+              git add "$path"
+            else
+              echo "Keep fork deletion for path: $path"
+            fi
+          done
+
+          remaining_conflicts="$(git diff --name-only --diff-filter=U)"
+          if [ -n "$remaining_conflicts" ]; then
+            echo "Merge still has conflicts outside fork-owned paths:"
+            echo "$remaining_conflicts"
+            exit 1
+          fi
+
+          if [ "$merge_failed" -ne 0 ]; then
+            echo "Merge conflicts were limited to fork-owned paths and have been resolved with this fork's versions."
+          fi
+
+          if git diff --quiet && git diff --cached --quiet; then
+            git commit --allow-empty -m "ci: merge official beta base ${official_sha:0:8}"
+          else
+            git commit --no-edit
+          fi
+
           after="$(git rev-parse HEAD)"
           if [ "$before" = "$after" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
