@@ -8,6 +8,7 @@ README.md
 README_cn.md
 README_ja.md
 README_nl.md
+README
 .github/beta-prs.txt
 .github/fork-owned-paths.txt
 .github/workflows
