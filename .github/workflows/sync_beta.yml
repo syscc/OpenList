@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: write
   pull-requests: read
 
@@ -115,3 +116,8 @@ jobs:
           fi
 
           git push --force-with-lease origin HEAD:refs/heads/beta
+
+          # Pushes made with GITHUB_TOKEN do not trigger push workflows.
+          # Dispatch both beta builds explicitly after beta actually changes.
+          gh workflow run test_docker.yml --repo "${{ github.repository }}" --ref beta
+          gh workflow run beta_release.yml --repo "${{ github.repository }}" --ref beta
