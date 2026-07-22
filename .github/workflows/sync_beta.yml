@@ -6,7 +6,7 @@ on:
     types:
       - sync-beta
   schedule:
-    - cron: '37,52 * * * *'
+    - cron: '*/5 * * * *'
 
 concurrency:
   group: ${{ github.workflow }}-beta
@@ -40,6 +40,10 @@ jobs:
           git fetch origin refs/heads/beta:refs/remotes/origin/beta || true
 
           git checkout -B beta origin/main
+
+          fork_base="origin/main"
+          owned_paths_file=".github/fork-owned-paths.txt"
+          mapfile -t fork_owned_paths < <(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$owned_paths_file" | awk 'NF')
 
           state_file=".github/beta-state.txt"
           mkdir -p .github
@@ -95,7 +99,36 @@ jobs:
             git fetch "$remote" "$ref"
 
             echo "merge PR #$pr: $url"
-            git merge --no-edit --no-ff FETCH_HEAD
+            merge_failed=0
+            git merge --no-edit --no-ff --no-commit FETCH_HEAD || merge_failed=1
+            if [ "$merge_failed" -ne 0 ] && ! git rev-parse --verify -q MERGE_HEAD >/dev/null; then
+              echo "PR #$pr merge failed before conflict resolution."
+              exit 1
+            fi
+
+            for path in "${fork_owned_paths[@]}"; do
+              git rm -r -f --ignore-unmatch "$path"
+              if git cat-file -e "$fork_base:$path" 2>/dev/null; then
+                git checkout "$fork_base" -- "$path"
+                git add "$path"
+              else
+                echo "Keep fork deletion for path: $path"
+              fi
+            done
+
+            remaining_conflicts="$(git diff --name-only --diff-filter=U)"
+            if [ -n "$remaining_conflicts" ]; then
+              echo "PR #$pr has conflicts outside fork-owned paths:"
+              echo "$remaining_conflicts"
+              exit 1
+            fi
+
+            if git rev-parse --verify -q MERGE_HEAD >/dev/null; then
+              git commit --no-edit
+            fi
+            if [ "$merge_failed" -ne 0 ]; then
+              echo "Resolved PR #$pr conflicts with this fork's fixed path versions."
+            fi
             echo "- $pr $oid $url" >> "$state_file"
           done
 

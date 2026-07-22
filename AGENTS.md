@@ -42,6 +42,7 @@ beta = main + syscc 在官方仓库中 open、非 draft、head 来自 syscc/Open
   - 文件里没有 PR 号时，自动使用所有符合条件的 open PR。
   - 文件里写了 PR 号时，只叠加这些 PR。
 - 官方合并某个 PR 后，该 PR 不再是 open，下一次生成 `beta` 时会自动不再叠加。
+- 创建或更新提交给官方的 PR 后，应立即运行 `gh workflow run sync_beta.yml --repo syscc/OpenList --ref main`，不要只等待定时任务。
 
 ## Workflow 说明
 
@@ -53,8 +54,10 @@ beta = main + syscc 在官方仓库中 open、非 draft、head 来自 syscc/Open
 - `Sync beta branch`
   - 从 `main` 重新生成 `beta`。
   - 自动叠加符合规则的未合并 PR。
+  - PR 与 fork 固定路径冲突时保留 fork 版本；固定路径以外仍有冲突则失败。
   - 写入 `.github/beta-state.txt` 记录 base 和 PR 状态。
   - 只有生成后的 `beta` tree 有变化才 push。
+  - 每 5 分钟定时检查一次，作为 PR 创建或更新后立即触发的兜底。
 
 - `Beta Release (Docker)`
   - 只从 `beta` 分支构建 GHCR 镜像。
