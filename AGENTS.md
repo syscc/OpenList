@@ -27,6 +27,7 @@
 - `Sync upstream main` 合并官方更新后，会按该清单把这些路径恢复成合并前 `syscc/OpenList:main` 的版本。
 - 如果官方新增同名 README、workflow 或其它清单内路径，而本 fork 没有该文件，同步后也会删除，避免官方内容重新混入本 fork。
 - 需要新增或移除固定文件时，只改 `.github/fork-owned-paths.txt`，不要在 workflow 里写死路径。
+- `.gitignore` 冲突时采用官方版本并补回 `.spec-workflow/`，避免该本地规则阻塞上游同步。
 
 当前期望状态：
 

@@ -74,6 +74,15 @@ jobs:
           merge_failed=0
           git merge --no-edit --no-ff --no-commit "$official_sha" || merge_failed=1
 
+          if git diff --name-only --diff-filter=U -- .gitignore | grep -qxF '.gitignore'; then
+            echo "Resolve .gitignore from upstream and retain fork-local rules."
+            git checkout --theirs -- .gitignore
+            if ! grep -qxF '.spec-workflow/' .gitignore; then
+              printf '\n.spec-workflow/\n' >> .gitignore
+            fi
+            git add .gitignore
+          fi
+
           for path in "${fork_owned_paths[@]}"; do
             echo "Restore fork-owned path: $path"
             git rm -r -f --ignore-unmatch "$path"
