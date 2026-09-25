@@ -36,15 +36,19 @@ jobs:
           git remote add upstream https://github.com/OpenListTeam/OpenList.git
           git fetch upstream main
 
+          # Exclude runs older than the integrated upstream base, then select by creation time.
+          integrated_base="$(git merge-base HEAD upstream/main)"
+          since="$(git show -s --format=%cI "$integrated_base")"
           official_run="$(gh run list \
             --repo OpenListTeam/OpenList \
             --workflow test_docker.yml \
             --branch main \
             --event push \
             --status success \
-            --limit 1 \
-            --json databaseId,headSha,url \
-            --jq '.[0]')"
+            --created ">=$since" \
+            --limit 100 \
+            --json databaseId,headSha,url,createdAt \
+            --jq 'max_by(.createdAt)')"
 
           if [ -z "$official_run" ] || [ "$official_run" = "null" ]; then
             echo "No successful official beta Docker run found."
@@ -73,6 +77,10 @@ jobs:
 
           merge_failed=0
           git merge --no-edit --no-ff --no-commit "$official_sha" || merge_failed=1
+          if [ "$merge_failed" -ne 0 ] && ! git rev-parse --verify -q MERGE_HEAD >/dev/null; then
+            echo "Upstream merge failed before conflict resolution."
+            exit 1
+          fi
 
           if git diff --name-only --diff-filter=U -- .gitignore | grep -qxF '.gitignore'; then
             echo "Resolve .gitignore from upstream and retain fork-local rules."
@@ -95,6 +103,41 @@ jobs:
             fi
           done
 
+          if git diff --name-only --diff-filter=U -- "build.sh" | grep -qxF 'build.sh'; then
+            python3 <<'PYTHON'
+          import re
+          import subprocess
+          from pathlib import Path
+
+          def git(*args):
+              return subprocess.check_output(["git", *args])
+
+          def replace_time(content, before, after):
+              return b"".join(after if line == before else line for line in content.splitlines(keepends=True))
+
+          entries = [line.split() for line in git("ls-files", "--unmerged", "--", "build.sh").splitlines()]
+          if (len(entries) != 3 or {entry[2] for entry in entries} != {b"1", b"2", b"3"}
+                  or len({entry[0] for entry in entries}) != 1
+                  or entries[0][0] not in (b"100644", b"100755")):
+              raise SystemExit("Refuse build.sh resolution: expected matching regular-file merge stages.")
+
+          base, ours, theirs = (git("show", f":{stage}:build.sh") for stage in (1, 2, 3))
+          upstream_time = b"""builtAt="$(date +'%F %T %z')"\n"""
+          fork_time = b"""builtAt="$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')"\n"""
+          for content, expected in ((base, upstream_time), (ours, fork_time), (theirs, upstream_time)):
+              assignments = [line for line in content.splitlines(keepends=True)
+                             if re.match(rb"\s*(?:export\s+)?builtAt=", line)]
+              if assignments != [expected]:
+                  raise SystemExit("Refuse build.sh resolution: build-time assignment changed.")
+          if replace_time(ours, fork_time, upstream_time) != base:
+              raise SystemExit("Refuse build.sh resolution: fork changes extend beyond build time.")
+
+          Path("build.sh").write_bytes(replace_time(theirs, upstream_time, fork_time))
+          PYTHON
+            git add -- "build.sh"
+            echo "Resolved build.sh from upstream, retaining only the fork's Beijing build time."
+          fi
+
           remaining_conflicts="$(git diff --name-only --diff-filter=U)"
           if [ -n "$remaining_conflicts" ]; then
             echo "Merge still has conflicts outside fork-owned paths:"
@@ -103,7 +146,7 @@ jobs:
           fi
 
           if [ "$merge_failed" -ne 0 ]; then
-            echo "Merge conflicts were limited to fork-owned paths and have been resolved with this fork's versions."
+            echo "Merge conflicts have been resolved using the explicit fork preservation rules."
           fi
 
           if git diff --quiet && git diff --cached --quiet; then
