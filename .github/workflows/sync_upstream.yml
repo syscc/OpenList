@@ -3,7 +3,7 @@ name: Sync upstream main
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '17 */6 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

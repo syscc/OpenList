@@ -49,7 +49,7 @@ beta = main + syscc 在官方仓库中 open、非 draft、head 来自 syscc/Open
 ## Workflow 说明
 
 - `Sync upstream main`
-  - 每小时检查官方 `OpenListTeam/OpenList` 最新成功的 `Beta Release (Docker)` push run。
+  - 每6小时检查官方 `OpenListTeam/OpenList` 最新成功的 `Beta Release (Docker)` push run。
   - 只把 `main` 同步到官方已经成功构建 beta Docker 的 SHA。
   - 同步成功后触发 `Sync beta branch`。
 
@@ -59,7 +59,7 @@ beta = main + syscc 在官方仓库中 open、非 draft、head 来自 syscc/Open
   - PR 与 fork 固定路径冲突时保留 fork 版本；固定路径以外仍有冲突则失败。
   - 写入 `.github/beta-state.txt` 记录 base 和 PR 状态。
   - 只有生成后的 `beta` tree 有变化才 push。
-  - 每 5 分钟定时检查一次，作为 PR 创建或更新后立即触发的兜底。
+  - 每 6 小时定时检查一次，作为 PR 创建或更新后立即触发的兜底。
 
 - `Beta Release (Docker)`
   - 只从 `beta` 分支构建 GHCR 镜像。
