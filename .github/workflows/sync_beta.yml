@@ -6,7 +6,7 @@ on:
     types:
       - sync-beta
   schedule:
-    - cron: '37 */6 * * *'
+    - cron: '37 */12 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-beta
